@@ -15,18 +15,27 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import { addTask } from "@/redux/features/task/taskSlice"
+import { useAppDispatch } from "@/redux/hooks"
+import type { ITask } from "@/types"
 import { format } from "date-fns"
 import { CalendarIcon } from "lucide-react"
 
-import { useForm } from "react-hook-form"
+import { useForm, type FieldValues, type SubmitHandler } from "react-hook-form"
 
 
 
 export function AddTaskModal() {
+    // this connects with the hook form 
     const form = useForm()
 
-    const onSubmit = (data) => {
+    const disPatch = useAppDispatch()
+
+
+    // 
+    const onSubmit: SubmitHandler<FieldValues> = (data) => {
         console.log(data)
+        disPatch(addTask(data as ITask))
     }
 
     return (
@@ -43,6 +52,7 @@ export function AddTaskModal() {
                     </DialogHeader>
                     {/* changed the form */}
                     <Form {...form}>
+                        {/* form.handleSubmit → used to handle form submission */}
                         <form onSubmit={form.handleSubmit(onSubmit)}>
                             <FormField
                                 control={form.control}
@@ -52,12 +62,14 @@ export function AddTaskModal() {
                                         <FormLabel>Title</FormLabel>
                                         <FormControl>
                                             <Input  {...field} value={field.value || ""} />
+                                            {/* Input: the actual input box. value={field.value || ""} ensures it’s never undefined. */}
                                         </FormControl>
                                     </FormItem>
                                 )}
                             />
                             <FormField
                                 control={form.control}
+                                // form.control → used in every field to link it to the form
                                 name="description"
                                 render={({ field }) => (
                                     <FormItem>
