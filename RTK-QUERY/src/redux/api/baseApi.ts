@@ -15,9 +15,16 @@ export const baseApi = createApi({
         getTask: builder.query({
             // This query will hit the `/tasks` route (full URL: http://localhost:5000/api/tasks)
             query: () => "/tasks"
+        }),
+        createTask: builder.mutation({
+            query: (taskData) => ({
+                url: "/tasks",          // Endpoint to which the request will be sent
+                method: "POST",         // HTTP method used for the request
+                body: taskData          // Request payload (sent in the body of the POST)
+            })
         })
     })
 })
 
 // made an automatic hook 
-export const { useGetTaskQuery } = baseApi
+export const { useGetTaskQuery, useCreateTaskMutation } = baseApi
