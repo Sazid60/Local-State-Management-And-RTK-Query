@@ -648,3 +648,6 @@ export default taskSlice.reducer
 
 
 ```
+
+## 23-6 Assigning users to a task
+- sees related To User. and also see code of taskCard for watching assigning user related codes. 
