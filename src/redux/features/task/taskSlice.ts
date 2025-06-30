@@ -1,6 +1,7 @@
 import type { RootState } from "@/redux/store";
 import type { ITask } from "@/types";
 import { createSlice, nanoid, type PayloadAction } from "@reduxjs/toolkit";
+import { removeUser } from '@/redux/features/user/userSlice';
 
 
 // make a type 
@@ -12,15 +13,15 @@ interface InitialState {
 // this is giving a vibe of schema. 
 const initialState: InitialState = {
     tasks: [
-        // {
-        //     id: "dskdjsdks",
-        //     title: "Initialize Frontend",
-        //     description: "Create Homepage and Routing",
-        //     dueDate: "2025-11",
-        //     isCompleted: false,
-        //     priority: "High",
-        //     assignedTo: null
-        // },
+        {
+            id: "dskdjsdks",
+            title: "Initialize Frontend",
+            description: "Create Homepage and Routing",
+            dueDate: "2025-11",
+            isCompleted: false,
+            priority: "High",
+            assignedTo: null
+        },
     ],
     filter: "all",
 }
@@ -28,9 +29,11 @@ const initialState: InitialState = {
 type DraftTask = Pick<ITask, "title" | "description" | "dueDate" | "priority" | "assignedTo">
 const createTask = (taskData: DraftTask): ITask => {
     return {
+        ...taskData,
         id: nanoid(),
         isCompleted: false,
-        ...taskData
+        assignedTo: taskData.assignedTo ? taskData.assignedTo : null
+
     }
 }
 const taskSlice = createSlice({
@@ -64,6 +67,11 @@ const taskSlice = createSlice({
             state.filter = action.payload
         }
     },
+    extraReducers: (builder) => {
+        builder.addCase(removeUser, (state, action) => {
+            state.tasks.forEach((task) => task.assignedTo === action.payload ? task.assignedTo = null : task)
+        })
+    }
 
 })
 

@@ -651,3 +651,514 @@ export default taskSlice.reducer
 
 ## 23-6 Assigning users to a task
 - sees related To User. and also see code of taskCard for watching assigning user related codes. 
+- store.ts 
+
+```ts 
+import { configureStore } from '@reduxjs/toolkit'
+import counterReducer from "./features/counter/counterSlice"
+
+import taskReducer from "./features/task/taskSlice"
+import userReducer from "./features/user/userSlice"
+
+export const store = configureStore({
+    reducer: {
+        counter: counterReducer,
+        todo: taskReducer,
+        user: userReducer
+    }
+})
+
+export type RootState = ReturnType<typeof store.getState>
+
+export type AppDispatch = typeof store.dispatch
+
+```
+- types.ts 
+
+```ts 
+export interface ITask {
+    id: string
+    title: string
+    description: string
+    dueDate: string
+    isCompleted: boolean
+    priority: "High" | "Medium" | "Low",
+    assignedTo: string | null
+}
+
+export interface IUser {
+    id: string
+    name: string
+}
+```
+- userSlice.ts
+
+```ts
+
+import type { RootState } from "@/redux/store";
+import type { IUser } from "@/types";
+import { createSlice, nanoid, type PayloadAction } from "@reduxjs/toolkit";
+interface InitialState {
+    users: IUser[]
+}
+const initialState: InitialState = {
+    users: [
+        {
+            id: "QBpNSd38i-t1s_IcdhhX9",
+            name: "sazid"
+        },
+        {
+            id: "QBpNSd38i-t1s_IcdhhXdfd",
+            name: "shakil"
+        }
+    ]
+}
+type DraftUser = Pick<IUser, "name">
+const createUser = (userData: DraftUser): IUser => {
+    return { id: nanoid(), ...userData }
+}
+
+const userSlice = createSlice({
+    name: "user",
+    initialState: initialState,
+    reducers: {
+        addUser: (state, action: PayloadAction<IUser>) => {
+            const userData = createUser(action.payload);
+            // console.log(userData)
+            state.users.push(userData)
+        },
+        removeUser: (state, action: PayloadAction<string>) => {
+            state.users = state.users.filter((user) => user.id != action.payload)
+        }
+    }
+})
+
+export const selectUser = (state: RootState) => {
+    return state.user.users
+}
+
+export const { addUser, removeUser } = userSlice.actions
+
+export default userSlice.reducer
+```
+
+- AddUserModal.tsx
+
+```tsx
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { addUser } from "@/redux/features/user/userSlice"
+import { useAppDispatch } from "@/redux/hooks"
+import type { IUser } from "@/types"
+import { useForm, type FieldValues, type SubmitHandler } from "react-hook-form"
+
+export default function AddUserModal() {
+    // this connects with the hook form 
+    const form = useForm()
+
+    const disPatch = useAppDispatch()
+
+
+    // 
+    const onSubmit: SubmitHandler<FieldValues> = (data) => {
+        console.log(data)
+        disPatch(addUser(data as IUser))
+    }
+
+    return (
+        <Dialog>
+            <form>
+                <DialogTrigger asChild>
+                    <Button >Add User</Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogDescription className="sr-only">Fill up This task Form to add task</DialogDescription>
+                    {/* sr-only means only the screen reader can read but this will not be visible. */}
+                    <DialogHeader>
+                        <DialogTitle>Add User</DialogTitle>
+                    </DialogHeader>
+                    {/* changed the form */}
+                    <Form {...form}>
+                        {/* form.handleSubmit → used to handle form submission */}
+                        <form onSubmit={form.handleSubmit(onSubmit)}>
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Name</FormLabel>
+                                        <FormControl>
+                                            <Input  {...field} value={field.value || ""} />
+                                            {/* Input: the actual input box. value={field.value || ""} ensures it’s never undefined. */}
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                            <DialogFooter className="mt-4 ">
+                                <Button type="submit" className="w-full ">Save changes</Button>
+                            </DialogFooter>
+                        </form>
+
+
+                    </Form>
+                </DialogContent>
+            </form>
+        </Dialog>
+    )
+}
+
+```
+
+- UserCard.tsx
+
+```tsx 
+import { Button } from "@/components/ui/button";
+import { removeUser } from "@/redux/features/user/userSlice";
+import { useAppDispatch } from "@/redux/hooks";
+import type { IUser } from "@/types";
+import { Trash2 } from "lucide-react";
+
+
+interface IUProps {
+    user: IUser;
+}
+
+export default function UserCard({ user }: IUProps) {
+    const dispatch = useAppDispatch()
+    console.log(user)
+    return (
+        <div className="border px-5 py-3 rounded-md w-[450px] ">
+            <div className="flex justify-between items-center">
+                <div className="flex gap-2 items-center">
+                    {/* clsx used here  */}
+                    <h1 className="mb-2" >{user.name}</h1>
+
+                </div>
+                <div className="flex gap-3 items-center">
+                    <Button onClick={() => dispatch(removeUser(user.id))} variant="link" className="p-0 text-red-500">
+                        <Trash2 />
+                    </Button>
+                </div>
+            </div>
+        </div >
+    )
+}
+
+```
+
+- TaskCard.tsx
+
+```tsx 
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
+import { deleteTask, toggleCompleteState } from "@/redux/features/task/taskSlice";
+import { selectUser } from "@/redux/features/user/userSlice";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import type { ITask } from "@/types";
+
+import { Trash2 } from "lucide-react";
+
+interface IProps {
+    task: ITask;
+}
+export default function TaskCard({ task }: IProps) {
+    const dispatch = useAppDispatch()
+    const users = useAppSelector(selectUser)
+    const assignedUser = users.find(user => user.id === task.assignedTo)
+
+    return (
+        <div className="border px-5 py-3 rounded-md container ">
+            <div className="flex justify-between items-center">
+                <div className="flex gap-2 items-center">
+                    {/* clsx used here  */}
+                    <div className={cn("size-3 rounded-full", {
+                        "bg-green-500": task.priority === "Low",
+                        "bg-yellow-500": task.priority === "Medium",
+                        "bg-red-600": task.priority === "High"
+                    })}>
+
+                    </div>
+                    <h1 className={cn({ "line-through": task.isCompleted })}>{task.title}</h1>
+                </div>
+                <div className="flex gap-3 items-center">
+                    <Button onClick={() => dispatch(deleteTask(task.id))} variant="link" className="p-0 text-red-500">
+                        <Trash2 />
+                    </Button>
+                    <Checkbox checked={task.isCompleted} onClick={() => dispatch(toggleCompleteState(task.id))} />
+                </div>
+            </div>
+            <p className="mt-5">Assigned To - {assignedUser ? assignedUser.name : "No-One"}</p>
+            <p className="mt-5">{task.description}</p>
+        </div >
+    );
+}
+
+```
+
+## 23-7 Magic of extra reducers
+
+- Lets fix the reset and close modal functionality 
+
+
+```tsx
+export function AddTaskModal() {
+
+    // responsible for closing the modal 
+    const [open, setOpen] = useState(false)
+
+    const form = useForm()
+
+
+
+    // 
+    const onSubmit: SubmitHandler<FieldValues> = (data) => {
+        console.log(data)
+        disPatch(addTask(data as ITask))
+        // responsible for closing the modal 
+        setOpen(false)
+        // responsible for resetting the form 
+        form.reset()
+    }
+
+    return (
+        // responsible for closing the modal 
+        <Dialog open={open} onOpenChange={setOpen}>
+
+        </Dialog>
+
+```
+
+- set the default assignedTo To Null
+
+```ts
+import type { RootState } from "@/redux/store";
+import type { ITask } from "@/types";
+import { createSlice, nanoid, type PayloadAction } from "@reduxjs/toolkit";
+
+
+// make a type 
+
+interface InitialState {
+    tasks: ITask[],
+    filter: "all" | "high" | "medium" | "low"
+}
+// this is giving a vibe of schema. 
+const initialState: InitialState = {
+    tasks: [
+        {
+            id: "dskdjsdks",
+            title: "Initialize Frontend",
+            description: "Create Homepage and Routing",
+            dueDate: "2025-11",
+            isCompleted: false,
+            priority: "High",
+            assignedTo: null
+        },
+    ],
+    filter: "all",
+}
+
+type DraftTask = Pick<ITask, "title" | "description" | "dueDate" | "priority" | "assignedTo">
+const createTask = (taskData: DraftTask): ITask => {
+    return {
+        ...taskData,
+        id: nanoid(),
+        isCompleted: false,
+        assignedTo: taskData.assignedTo ? taskData.assignedTo : null
+
+    }
+}
+const taskSlice = createSlice({
+    name: "task",
+    initialState,
+    reducers: {
+        // type action has been provided here. 
+        addTask: (state, action: PayloadAction<DraftTask>) => {
+            // const id = uuidv4();
+            // const taskData = {
+            //     ...action.payload,
+            //     id,
+            //     isCompleted: false
+            // }
+            const taskData = createTask(action.payload)
+            state.tasks.push(taskData)
+            // here push is used. but why? its might mutate right? we do not have to think of it now. Mutation is handled by immer 
+        },
+        toggleCompleteState: (state, action: PayloadAction<string>) => {
+            console.log(action)
+            state.tasks.forEach((task) =>
+                task.id === action.payload
+                    ? (task.isCompleted = !task.isCompleted)
+                    : task
+            )
+        },
+        deleteTask: (state, action: PayloadAction<string>) => {
+            state.tasks = state.tasks.filter((task) => task.id != action.payload)
+        },
+        updateFilter: (state, action: PayloadAction<"all" | "high" | "medium" | "low">) => {
+            state.filter = action.payload
+        }
+    },
+
+})
+
+// selector functions 
+export const selectTasks = (state: RootState) => {
+    const filter = state.todo.filter
+    if (filter === "low") {
+        return state.todo.tasks.filter((task) => task.priority === "Low")
+    } else if (filter === "medium") {
+        return state.todo.tasks.filter((task) => task.priority === "Medium")
+    } else if (filter === "high") {
+        return state.todo.tasks.filter((task) => task.priority === "High")
+    } else {
+        return state.todo.tasks
+    }
+
+}
+export const selectFilter = (state: RootState) => {
+    return state.todo.filter
+}
+
+export const { addTask, toggleCompleteState, deleteTask, updateFilter } = taskSlice.actions
+
+export default taskSlice.reducer
+
+
+```
+
+- Lets handle the logic if any user gets deleted. 
+
+![alt text](image.png)
+
+- even if ui shows that null ist set. but redux holds the assignedTo User id. we have to fix this i mean we have to clear this. 
+- Based on the removeUser from userSlice we want to do something on taskSlice. here comes the help of `Extra Reducers`
+- When there is some dependencies like asynchronous or other slice dependency we will use extra reducers. 
+- Extra Reducer gives us builder notation 
+- builder notation will tell the store that a user has been  removed. and now what is needed do it. 
+- The signal is received inside extra reducer. 
+
+```ts
+    extraReducers: (builder) => {
+        builder.addCase(removeUser, (state, action) => {
+            state.tasks.forEach((task) => task.assignedTo === action.payload ? task.assignedTo = null : task)
+        })
+    }
+```
+- taskSlice.ts 
+```ts 
+import type { RootState } from "@/redux/store";
+import type { ITask } from "@/types";
+import { createSlice, nanoid, type PayloadAction } from "@reduxjs/toolkit";
+import { removeUser } from '@/redux/features/user/userSlice';
+
+
+// make a type 
+
+interface InitialState {
+    tasks: ITask[],
+    filter: "all" | "high" | "medium" | "low"
+}
+// this is giving a vibe of schema. 
+const initialState: InitialState = {
+    tasks: [
+        {
+            id: "dskdjsdks",
+            title: "Initialize Frontend",
+            description: "Create Homepage and Routing",
+            dueDate: "2025-11",
+            isCompleted: false,
+            priority: "High",
+            assignedTo: null
+        },
+    ],
+    filter: "all",
+}
+
+type DraftTask = Pick<ITask, "title" | "description" | "dueDate" | "priority" | "assignedTo">
+const createTask = (taskData: DraftTask): ITask => {
+    return {
+        ...taskData,
+        id: nanoid(),
+        isCompleted: false,
+        assignedTo: taskData.assignedTo ? taskData.assignedTo : null
+
+    }
+}
+const taskSlice = createSlice({
+    name: "task",
+    initialState,
+    reducers: {
+        // type action has been provided here. 
+        addTask: (state, action: PayloadAction<DraftTask>) => {
+            // const id = uuidv4();
+            // const taskData = {
+            //     ...action.payload,
+            //     id,
+            //     isCompleted: false
+            // }
+            const taskData = createTask(action.payload)
+            state.tasks.push(taskData)
+            // here push is used. but why? its might mutate right? we do not have to think of it now. Mutation is handled by immer 
+        },
+        toggleCompleteState: (state, action: PayloadAction<string>) => {
+            console.log(action)
+            state.tasks.forEach((task) =>
+                task.id === action.payload
+                    ? (task.isCompleted = !task.isCompleted)
+                    : task
+            )
+        },
+        deleteTask: (state, action: PayloadAction<string>) => {
+            state.tasks = state.tasks.filter((task) => task.id != action.payload)
+        },
+        updateFilter: (state, action: PayloadAction<"all" | "high" | "medium" | "low">) => {
+            state.filter = action.payload
+        }
+    },
+    extraReducers: (builder) => {
+        builder.addCase(removeUser, (state, action) => {
+            state.tasks.forEach((task) => task.assignedTo === action.payload ? task.assignedTo = null : task)
+        })
+    }
+
+})
+
+// selector functions 
+export const selectTasks = (state: RootState) => {
+    const filter = state.todo.filter
+    if (filter === "low") {
+        return state.todo.tasks.filter((task) => task.priority === "Low")
+    } else if (filter === "medium") {
+        return state.todo.tasks.filter((task) => task.priority === "Medium")
+    } else if (filter === "high") {
+        return state.todo.tasks.filter((task) => task.priority === "High")
+    } else {
+        return state.todo.tasks
+    }
+
+}
+export const selectFilter = (state: RootState) => {
+    return state.todo.filter
+}
+
+export const { addTask, toggleCompleteState, deleteTask, updateFilter } = taskSlice.actions
+
+export default taskSlice.reducer
+
+
+```
+
+## 23-8 Local State vs Server State
+- RTK and Slice has major difference 
+
+
+1. **slice :** we are creating createSlice . this for local state
+2. **RTK :** Base API => endpoints => server state. When we update a parameter it is directly gets connected to server and updates there. There is no connection with store. When server state is handled the data is stored directly inside db. For sysncing with server state we use RTK Query. 
+
+- `RTK Query` handles the `data fetching` and the `caching`.
+- The shareable things are done using RTK as it needs to be stored inside the database. 
+- Mostly we will use RTK Query.  

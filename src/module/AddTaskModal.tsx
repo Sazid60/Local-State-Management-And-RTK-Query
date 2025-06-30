@@ -21,12 +21,17 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks"
 import type { ITask } from "@/types"
 import { format } from "date-fns"
 import { CalendarIcon } from "lucide-react"
+import { useState } from "react"
 
 import { useForm, type FieldValues, type SubmitHandler } from "react-hook-form"
 
 
 
 export function AddTaskModal() {
+
+    // responsible for closing the modal 
+    const [open, setOpen] = useState(false)
+
     // this connects with the hook form 
     const form = useForm()
 
@@ -39,10 +44,14 @@ export function AddTaskModal() {
     const onSubmit: SubmitHandler<FieldValues> = (data) => {
         console.log(data)
         disPatch(addTask(data as ITask))
+        // responsible for closing the modal 
+        setOpen(false)
+        // responsible for resetting the form 
+        form.reset()
     }
 
     return (
-        <Dialog>
+        <Dialog open={open} onOpenChange={setOpen}>
             <form>
                 <DialogTrigger asChild>
                     <Button >Add Task</Button>
