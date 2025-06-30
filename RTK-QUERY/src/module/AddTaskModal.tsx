@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import { useCreateTaskMutation } from "@/redux/api/baseApi"
 import { format } from "date-fns"
 import { CalendarIcon } from "lucide-react"
 import { useState } from "react"
@@ -32,12 +33,24 @@ export function AddTaskModal() {
     const form = useForm()
 
 
+    const [createTask, { data, isLoading, isError }] = useCreateTaskMutation()
+
+    console.log({ "Data Before Function": data, isLoading, isError })
+
 
 
     // 
-    const onSubmit: SubmitHandler<FieldValues> = (data) => {
-        console.log(data)
+    const onSubmit: SubmitHandler<FieldValues> = async (data) => {
+        const taskDta = {
+            ...data,
+            isCompleted: false
+        }
+
+        const res = await createTask(taskDta)
+        console.log("Data Inside Function", res)
         // responsible for closing the modal 
+
+
         setOpen(false)
         // responsible for resetting the form 
         form.reset()
@@ -96,28 +109,6 @@ export function AddTaskModal() {
                                             <FormControl>
                                                 <SelectTrigger className="w-full">
                                                     <SelectValue placeholder="Select Priority" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="Low">Low</SelectItem>
-                                                <SelectItem value="Medium">Medium</SelectItem>
-                                                <SelectItem value="High">High</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="assignedTo"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="mt-4">Assign User</FormLabel>
-                                        {/* Bind value and onChange to react-hook-form */}
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger className="w-full">
-                                                    <SelectValue placeholder="Select User" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
