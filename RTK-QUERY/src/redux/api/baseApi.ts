@@ -2,7 +2,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
 
 // Creating a base API instance using createApi
-const baseApi = createApi({
+export const baseApi = createApi({
     // Unique key for the API reducer in the Redux store
     reducerPath: "baseApi",
 
@@ -19,4 +19,5 @@ const baseApi = createApi({
     })
 })
 
-
+// made an automatic hook 
+export const { useGetTaskQuery } = baseApi
