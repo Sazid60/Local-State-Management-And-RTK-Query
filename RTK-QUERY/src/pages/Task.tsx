@@ -8,7 +8,13 @@ import type { ITask } from "@/types"
 
 export default function Task() {
 
-    const { data, isLoading, isError } = useGetTaskQuery(undefined)
+    const { data, isLoading, isError } = useGetTaskQuery(undefined,
+        {
+            pollingInterval: 3000,
+            refetchOnFocus: true,
+            refetchOnMountOrArgChange: true
+        }
+    )
 
     console.log({ data, isLoading, isError })
 
